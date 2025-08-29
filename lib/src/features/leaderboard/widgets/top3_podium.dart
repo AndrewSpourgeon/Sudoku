@@ -75,7 +75,7 @@ class _Top3PodiumState extends State<Top3Podium> with TickerProviderStateMixin {
                     _PodiumColumn(
                       entry: widget.second,
                       rank: 2,
-                      height: 120,
+                      height: 134, // increased for bottom breathing
                       width: columnWidth,
                       highlight: widget.second.uid == widget.myUid,
                       anim: _anim,
@@ -85,7 +85,7 @@ class _Top3PodiumState extends State<Top3Podium> with TickerProviderStateMixin {
                     _PodiumColumn(
                       entry: widget.first,
                       rank: 1,
-                      height: 150,
+                      height: 168, // increased
                       width: columnWidth,
                       highlight: widget.first.uid == widget.myUid,
                       anim: _anim,
@@ -95,7 +95,7 @@ class _Top3PodiumState extends State<Top3Podium> with TickerProviderStateMixin {
                     _PodiumColumn(
                       entry: widget.third,
                       rank: 3,
-                      height: 105,
+                      height: 120, // increased
                       width: columnWidth,
                       highlight: widget.third.uid == widget.myUid,
                       anim: _anim,
@@ -314,30 +314,57 @@ class _PodiumBlock extends StatelessWidget {
                       ),
                     ],
                   ),
+                  padding: const EdgeInsets.only(
+                    bottom: 12,
+                  ), // added internal bottom padding
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Replace rank label text with medal image for top 3
                         Opacity(
                           opacity: appear.clamp(0, 1),
                           child: Transform.translate(
                             offset: Offset(0, (1 - appear) * 8),
-                            child: Text(
-                              rankLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: .3,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black38,
-                                    offset: Offset(0, 1),
-                                    blurRadius: 3,
-                                  ),
-                                ],
-                              ),
-                            ),
+                            child: () {
+                              String? asset;
+                              switch (rank) {
+                                case 1:
+                                  asset = 'assets/images/gold.png';
+                                  break;
+                                case 2:
+                                  asset = 'assets/images/silver.png';
+                                  break;
+                                case 3:
+                                  asset = 'assets/images/bronze.png';
+                                  break;
+                              }
+                              if (asset != null) {
+                                return Image.asset(
+                                  asset,
+                                  width: 46,
+                                  height: 46,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.high,
+                                );
+                              }
+                              return Text(
+                                rankLabel,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: .3,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black38,
+                                      offset: Offset(0, 1),
+                                      blurRadius: 3,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }(),
                           ),
                         ),
                         SizedBox(height: 8 * appear),
@@ -381,6 +408,7 @@ class _PodiumBlock extends StatelessWidget {
                             ),
                           ),
                         ),
+                        // removed external bottom spacer (was 12 * appear)
                       ],
                     ),
                   ),

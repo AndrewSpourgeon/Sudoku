@@ -95,14 +95,16 @@ class ProfileFab extends StatelessWidget {
                 width: 1.2,
               ),
               color: Colors.white.withOpacity(0.08),
+              image: photo != null
+                  ? DecorationImage(
+                      image: NetworkImage(photo),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
-            clipBehavior: Clip.hardEdge,
+            clipBehavior: Clip.antiAlias,
             child: photo != null
-                ? Image.network(
-                    photo,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fallbackIcon(),
-                  )
+                ? null // Using decoration image instead of child
                 : _fallbackIcon(),
           ),
         ),

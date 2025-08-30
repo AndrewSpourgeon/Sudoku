@@ -1,17 +1,18 @@
 import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:lottie/lottie.dart';
 
 import '../models/leaderboard_entry.dart';
 import '../repositories/user_repository.dart';
 import '../controllers/profile_controller.dart';
 import '../features/leaderboard/widgets/nebula_background.dart';
-import '../features/leaderboard/widgets/globe_badge.dart';
 import '../features/leaderboard/widgets/rank_progress_capsule.dart';
 import '../features/leaderboard/widgets/leaderboard_row.dart';
 import '../features/leaderboard/widgets/leaderboard_header.dart';
@@ -43,6 +44,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   late final Stream<List<LeaderboardEntry>> _stream;
   final GlobalKey<_LeaderboardListState> _listKey =
       GlobalKey<_LeaderboardListState>();
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -51,6 +53,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _introController.forward(),
     );
+  }
+
+  Future<void> _refreshLeaderboard() async {
+    if (_isRefreshing) return;
+
+    setState(() => _isRefreshing = true);
+
+    try {
+      // Add a delay to show the loading animation
+      await Future.delayed(const Duration(milliseconds: 2000));
+
+      // The stream will automatically update with fresh data from Firestore
+    } catch (e) {
+      // Handle error silently
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
   }
 
   @override
@@ -139,7 +160,75 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                                         ),
                                       ),
                                       const SizedBox(width: 12),
-                                      const GlobeBadge(),
+                                      GestureDetector(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          _refreshLeaderboard();
+                                        },
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          width: 42,
+                                          height: 42,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            gradient: LinearGradient(
+                                              colors: _isRefreshing
+                                                  ? [
+                                                      const Color(0xFF8B5CF6),
+                                                      const Color(0xFF6366F1),
+                                                    ]
+                                                  : [
+                                                      const Color(0xFF10B981),
+                                                      const Color(0xFF059669),
+                                                    ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color:
+                                                    (_isRefreshing
+                                                            ? const Color(
+                                                                0xFF8B5CF6,
+                                                              )
+                                                            : const Color(
+                                                                0xFF10B981,
+                                                              ))
+                                                        .withOpacity(.4),
+                                                blurRadius: _isRefreshing
+                                                    ? 24
+                                                    : 20,
+                                                offset: const Offset(0, 8),
+                                                spreadRadius: _isRefreshing
+                                                    ? 3
+                                                    : 2,
+                                              ),
+                                            ],
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(
+                                                .25,
+                                              ),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: _isRefreshing
+                                              ? SizedBox(
+                                                  width: 22,
+                                                  height: 22,
+                                                  child: Lottie.asset(
+                                                    'assets/lottie/loading.json',
+                                                    fit: BoxFit.contain,
+                                                  ),
+                                                )
+                                              : const Icon(
+                                                  Icons.refresh_rounded,
+                                                  color: Colors.white,
+                                                  size: 22,
+                                                ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -297,6 +386,44 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   Future<void> _shareProfileCard(int rank) async {
+    // Create and show loading overlay
+    late OverlayEntry loadingOverlay;
+    loadingOverlay = OverlayEntry(
+      builder: (context) => Positioned.fill(
+        child: Container(
+          color: Colors.black.withOpacity(0.5),
+          child: Center(
+            child: Container(
+              width: 280,
+              height: 280,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 4,
+                  ),
+                ],
+                border: Border.all(
+                  color: const Color(0xFF6366F1).withOpacity(0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: Lottie.asset(
+                'assets/lottie/loading.json',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(loadingOverlay);
+
     try {
       final key = GlobalKey();
       final overlay = Overlay.of(context);
@@ -353,8 +480,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             'I am currently #$rank on the Sudoku Global Leaderboard! Can you beat me?',
       );
       entry.remove();
+      loadingOverlay.remove();
     } catch (e) {
       Share.share('I am currently #$rank on the Sudoku Global Leaderboard!');
+      loadingOverlay.remove();
     }
   }
 }
